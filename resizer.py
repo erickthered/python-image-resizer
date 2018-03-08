@@ -12,21 +12,26 @@ class Resizer():
     def getFiles(self):
         self.files = [item for item in os.listdir(self.directory) if os.path.isfile(os.path.join(self.directory, item))]
 
-    def process(self, maxwidth = -1, maxheight = -1):
+    def getNewSize(self, oldsize, width = 0, height = 0):
+        if (width > 0):
+            height = int(width/oldsize[0] * oldsize[1])
+        else:
+            width = int(height/oldsize[1] * oldsize[0])
+        return (width, height)
+
+    def process(self, maxwidth = 0, maxheight = 0):
         self.getFiles()
         for file in self.files:
             try:
                 image = Image.open(os.path.join(self.directory, file))
                 if maxwidth > 0 and image.width > maxwidth:
-                    outfile = os.path.splitext(file)[0] + ".widthresized" + ".".join(os.path.splitext(file)[1:])
-                    height = int(maxwidth/image.width * image.height)
-                    image = image.resize( (maxwidth, height) )
-                    image.save(os.path.join(self.directory, outfile))
+                    newSize = self.getNewSize(image.size, width=maxwidth)
+                    image = image.resize(newSize)
+                    image.save(os.path.join(self.directory, file))
                 elif maxheight > 0 and image.height > maxheight:
-                    outfile = os.path.splitext(file)[0] + ".heightresized" + ".".join(os.path.splitext(file)[1:])
-                    width = int(maxheight/image.height * image.width)
-                    image = image.resize( (width, maxheight) )
-                    image.save(os.path.join(self.directory, outfile))                    
+                    newSize = self.getNewSize(image.size, height=maxheight)
+                    image = image.resize(newSize)
+                    image.save(os.path.join(self.directory, file))
             except IOError:
                 pass
 
@@ -34,5 +39,13 @@ if __name__ == "__main__":
     if len(sys.argv) < 4:
         print(sys.argv[0], "<path_to_process> <width> <height>")
     else:
-        resizer = Resizer(sys.argv[1])
-        resizer.process(maxwidth=int(sys.argv[2]), maxheight=int(sys.argv[3]))
+        msg = "WARNING:\nThis program will overwrite any image files "
+        msg += "that exceed the given size in pixels, please make sure "
+        msg += "that you have a backup.\n"
+        msg += "Do you want to proceed? [yes/no]: "
+        yesno = input(msg)
+        if yesno.lower() == "yes":
+            resizer = Resizer(sys.argv[1])
+            resizer.process(maxwidth=int(sys.argv[2]), maxheight=int(sys.argv[3]))
+        else:
+            print ("Nothing has been modified")
